@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #define YES 1
 #define NO  0
@@ -37,12 +38,14 @@
 #define ascii2i( ccode )    (ccode - (int) '!')     /* ASCII to index -- a charactar code minus the offset */
 #define i2ascii( cindex )   (cindex + (int) '!')
 
-typedef unsigned long   counter_t;
-/* #define MAX_COUNTER -- ввести константу для проверки на переполнение */
+typedef unsigned long   count_t;
+#define MAX_COUNT_T   ULONG_MAX
 
-counter_t   nwords;     /* Number of words */
-counter_t   nlines;     /* Number of lines */
-counter_t   nletters;   /* Number of letters */
+count_t     occur[NLETTERS]; /* Occurence of each letter. */
+count_t     maxoccur;   /* Max occurence of a letter */
+count_t     nwords;     /* Number of words */
+count_t     nlines;     /* Number of lines */
+count_t     nletters;   /* Number of letters */
 int         ic;         /* The most common letter */
 double      avword;     /* Average number of letters per a word. */
 
@@ -53,14 +56,14 @@ int main(int argc, const char * argv[]) {
     FILE    *fp;
     
     if( argc == 1 ) {
-        fprintf( stderr, "Usage: awc file [file ...]\n" );
+        fprintf( stderr, "Usage: yawc file [file ...]\n" );
         return( EXIT_FAILURE );
         /* Alternative: fp = stdin */
     }
 
     while( --argc > 0 )
         if( (fp = fopen(*++argv, "r")) == NULL) {
-            fprintf(stderr, "awc: can't open %s\n", *argv);
+            fprintf(stderr, "yawc: can't open %s\n", *argv);
             return( EXIT_FAILURE );
         } else {
             cstat( fp );
@@ -69,17 +72,23 @@ int main(int argc, const char * argv[]) {
         }
         
     return 0;
-    
 }
 
 void fmtprint( const char *fname ) {
+    register int    i;  /* A bit old fashioned but I like it. */
 
     printf( "%s\n", fname );
     printf( "words:\t\t%lu\n", nwords );
     printf( "lines:\t\t%lu\n", nlines );
-    printf( "letters per word:%.1f\n", avword );
-    printf( "the most common letter:\t\t%c\n\n", (char) ic );
-    
+    /*     printf( "letters\t\t%lu\n", nletters );      -- not required. */
+    printf( "letters\t\t%lu\n", nletters );     /* Delete! */
+    printf( "letters per word:\t\t%.1f\n", avword );
+
+    printf( "the most common letter(s):" );
+    for( i = 0, ic = 0; i < NLETTERS; i++)
+        if( occur[i] == maxoccur)       /* At least ones it should be true by assignment. */
+            printf( "\t\t%c", (char) i2ascii( i ) );
+    printf( "\n\n");
 }
 
 
@@ -87,11 +96,9 @@ void fmtprint( const char *fname ) {
 ** cstat - Compute STATistics
 */
 void cstat(FILE *fp) {
-    register int i;     /* A bit old fashion but I like it. */
+    register int i;     /* A bit old fashioned but I like it. */
     int c;              /* Input buf */
     int newword;        /* Alternative might be as 'bool newword', but I like this one */
-    counter_t   maxoccur; /* Max occurence of a letter */
-    counter_t   occur[NLETTERS]; /* Occurence of each letter. */
     
     nwords = 0;
     nlines = 0;
@@ -101,9 +108,14 @@ void cstat(FILE *fp) {
     for(i = 0; i < NLETTERS; i++)
         occur[i] = 0;
     
+    maxoccur = 0;
     while((c = fgetc(fp)) != EOF) {
         switch( c ) {
-            case '\n':  ++nlines;
+            case '\n':  if( nlines == MAX_COUNT_T ) { /* Practically impossible. */
+                            fprintf( stderr, "yawc: file is too big\n" );
+                            exit( EXIT_FAILURE );
+                        } else
+                            ++nlines;
             case ' ' :
             case '\t':  newword = YES;
                         continue;
@@ -112,20 +124,19 @@ void cstat(FILE *fp) {
             continue;   /* Exclude DEL and not ASCII characters. Just to be on the safe
                         ** side.
                         */
-        ++nletters;
-        ++occur[ascii2i(c)];
+        if( nletters == MAX_COUNT_T ) { /* Practically impossible, nevertheless foir the sake of the safety. */
+            fprintf( stderr, "yawc: file is too big\n" );
+            exit( EXIT_FAILURE );
+        } else
+            ++nletters;
+        if( ++occur[ascii2i(c)] > maxoccur )
+            maxoccur = occur[ascii2i(c)];     /* In this case ++maxoccur is the same. The chosen approach is just clearer. */
         if( newword ) {
             ++nwords;
             newword = NO;
         }
         /* Ввести проверку на переполнение. */
     }
-    maxoccur = 0;
-    for( i = 0, ic = 0; i < NLETTERS; i++)
-        if( occur[i] > maxoccur) {
-            maxoccur = occur[i];
-            ic = i; /* предесмотреть если две и более букв имеют одинаковое вхождение */
-        }
-    ic = i2ascii( ic );
+
     avword = (double) nletters / (double) nwords;
 }
