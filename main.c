@@ -18,8 +18,10 @@
 **  The expectation is that you produce production-level code with all associated measures
 **  --- testing, documentation etc.
 **
-**  It's supposed to distingush letters ['A'-'z'], symbols ['!'-'/'] || [':'-'?'] || '~'
-**  and digits ['0'-'9'], thus the number of all letters is ['~'-'!'+1]. Notice 1 is added because '~' is included and the next character DEL is non-printing. A word consists of letters, digits and symbols. It derives from
+**  It's supposed to distingush uppercase letters ['A'..'Z'], lowcase letter['a'..'z'],
+**  symbols ['!'..'/'] || [':'..'?'] || '~' and digits ['0'..'9'], thus the number of all letters is ['~'-'!'+1].
+**  Notice 1 is added because '~' is included and the next character DEL is non-printing. A word consists of
+**  letters, digits and symbols. It derives from
 **  the difinition of a whitespace-delimited word.
 */
 
